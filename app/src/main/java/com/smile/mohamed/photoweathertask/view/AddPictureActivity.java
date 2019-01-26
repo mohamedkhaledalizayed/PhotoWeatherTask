@@ -63,6 +63,7 @@ public class AddPictureActivity extends AppCompatActivity {
     private String image_url;
     private AddPictureViewModel viewModel;
     private ActivityHomeBinding binding;
+    private LocationCallback locationCallback;
     private android.app.AlertDialog dialog;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -108,7 +109,6 @@ public class AddPictureActivity extends AppCompatActivity {
         }
 
         );
-
     }
 
     @SuppressLint("MissingPermission")
@@ -141,13 +141,11 @@ public class AddPictureActivity extends AppCompatActivity {
 
     }
 
-    private LocationCallback locationCallback;
-
     @SuppressLint("MissingPermission")
     private void requestLocationUpdates() {
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
-        locationRequest.setInterval(20 * 1000);
+        locationRequest.setInterval(20000);
         locationCallback = new LocationCallback() {
             @Override
             public void onLocationResult(LocationResult locationResult) {
@@ -198,7 +196,8 @@ public class AddPictureActivity extends AppCompatActivity {
         StrictMode.setVmPolicy(builder.build());
         Intent i = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         File out = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
-        out = new File(out, "IMage_"+new Date()+".jpg");
+        out = new File(out, "IMAGE_"+new Date()+".jpg");
+        // I save image url to use the same url to delete the old one and save the image with text
         image_url=out.getAbsolutePath();
         i.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(out));
         startActivityForResult(i,TAKE_PICTURE_REQUEST);
@@ -227,31 +226,30 @@ public class AddPictureActivity extends AppCompatActivity {
     }
 
     private Bitmap ProcessingBitmap(String captionString) {
-        Bitmap bm1 = null;
+        Bitmap bitmap = null;
         Bitmap newBitmap = null;
         try {
-            bm1 = BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.fromFile(new File(image_url))));
-            Bitmap.Config config = bm1.getConfig();
+            bitmap = BitmapFactory.decodeStream(getContentResolver().openInputStream(Uri.fromFile(new File(image_url))));
+            Bitmap.Config config = bitmap.getConfig();
             if (config == null) {
                 config = Bitmap.Config.ARGB_8888;
             }
-            newBitmap = Bitmap.createBitmap(bm1.getWidth(), bm1.getHeight(), config);
+            newBitmap = Bitmap.createBitmap(bitmap.getWidth(), bitmap.getHeight(), config);
             Canvas canvas = new Canvas(newBitmap);
-            canvas.drawBitmap(bm1, 0, 0, null);
+            canvas.drawBitmap(bitmap, 0, 0, null);
             Paint paintText = new Paint(Paint.ANTI_ALIAS_FLAG);
             paintText.setColor(Color.BLUE);
-            paintText.setTextSize(150);
+            paintText.setTextSize(200);
             paintText.setStyle(Paint.Style.FILL);
             paintText.setShadowLayer(10f, 10f, 10f, Color.BLACK);
             Rect textRect = new Rect();
             paintText.getTextBounds(captionString, 0, captionString.length(), textRect);
-            canvas.drawText(captionString, 100, 200, paintText);
+            canvas.drawText(captionString, 400, 900, paintText);
             binding.addImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
             binding.addImage.setImageBitmap(newBitmap);
             binding.sharePicture.setVisibility(View.VISIBLE);
             dialog.dismiss();
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
             dialog.dismiss();
             e.printStackTrace();
         }
