@@ -5,4 +5,8 @@
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
     <string name="share">Share Picture</string>
+    <string name="enable_gps">Please enable GPS to get your location</string>
+    <string name="title">Enable GPS</string>
+    <string name="please_wait">Please Wait</string>
+    <string name="error">Something Is Wrong</string>
 </resources>

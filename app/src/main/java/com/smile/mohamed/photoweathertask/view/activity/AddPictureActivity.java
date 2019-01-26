@@ -5,7 +5,6 @@ import android.annotation.SuppressLint;
 import android.arch.lifecycle.Observer;
 import android.arch.lifecycle.ViewModelProviders;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.graphics.Bitmap;
@@ -17,19 +16,17 @@ import android.graphics.Rect;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.StrictMode;
 import android.provider.MediaStore;
-import android.provider.Settings;
 import android.support.annotation.Nullable;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
-import android.widget.Toast;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -40,7 +37,9 @@ import com.nabinbhandari.android.permissions.PermissionHandler;
 import com.nabinbhandari.android.permissions.Permissions;
 import com.smile.mohamed.photoweathertask.R;
 import com.smile.mohamed.photoweathertask.databinding.ActivityHomeBinding;
+import com.smile.mohamed.photoweathertask.model.ImageData;
 import com.smile.mohamed.photoweathertask.services.response.WeatherResponse;
+import com.smile.mohamed.photoweathertask.utils.AppUtils;
 import com.smile.mohamed.photoweathertask.viewmodel.AddPictureViewModel;
 
 import java.io.File;
@@ -54,6 +53,7 @@ import java.util.Date;
 import dmax.dialog.SpotsDialog;
 
 import static com.smile.mohamed.photoweathertask.data.Constants.TAKE_PICTURE_REQUEST;
+import static com.smile.mohamed.photoweathertask.utils.AppUtils.showAlert;
 
 public class AddPictureActivity extends AppCompatActivity {
     private FusedLocationProviderClient fusedLocationProviderClient;
@@ -71,7 +71,7 @@ public class AddPictureActivity extends AppCompatActivity {
         binding = DataBindingUtil.setContentView(this,R.layout.activity_home);
 
         dialog = new SpotsDialog.Builder()
-                .setContext(this).setMessage("Please Wait")
+                .setContext(this).setMessage(R.string.please_wait)
                 .setTheme(R.style.Custom).build();
 
         binding.sharePicture.setOnClickListener(new View.OnClickListener() {
@@ -93,18 +93,17 @@ public class AddPictureActivity extends AppCompatActivity {
     private void checkPermission() {
         String[] permissions = {Manifest.permission.CAMERA,
                 Manifest.permission.ACCESS_FINE_LOCATION,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.READ_EXTERNAL_STORAGE};
+                Manifest.permission.WRITE_EXTERNAL_STORAGE};
         Permissions.check(this/*context*/, permissions, null/*rationale*/, null/*options*/, new PermissionHandler() {
             @Override
             public void onGranted() {
-                Toast.makeText(AddPictureActivity.this,"Permissions Granted",Toast.LENGTH_LONG).show();
+                AppUtils.showSuccessToast(AddPictureActivity.this,"Permissions Granted");
                 checkGPSStatus();
             }
 
             @Override
             public void onDenied(Context context, ArrayList<String> deniedPermissions) {
-                Toast.makeText(AddPictureActivity.this,"Permissions Denied",Toast.LENGTH_LONG).show();
+                AppUtils.showInfoToast(AddPictureActivity.this,"Permissions Denied");
                 }
         }
 
@@ -117,7 +116,7 @@ public class AddPictureActivity extends AppCompatActivity {
         LocationManager manager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (manager != null) {
             if (!manager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-               showAlert();
+               showAlert(this);
             } else{
 
                 fusedLocationProviderClient.getLastLocation().addOnSuccessListener(new OnSuccessListener<Location>() {
@@ -136,7 +135,7 @@ public class AddPictureActivity extends AppCompatActivity {
                 });
             }
         } else{
-            Toast.makeText(this,"Something Is Wrong",Toast.LENGTH_LONG).show();
+            AppUtils.showErrorToast(this,getString(R.string.error));
         }
 
     }
@@ -169,38 +168,19 @@ public class AddPictureActivity extends AppCompatActivity {
         fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, null);
     }
 
-    private void showAlert(){
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Enable GPS");
-        builder.setMessage("Please enable GPS in high accuracy mode to get your location");
-        builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-                startActivity(new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS));
-            }
-        });
-        builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialogInterface, int i) {
-                dialogInterface.dismiss();
-            }
-        });
-
-        builder.create();
-        builder.show();
-    }
-
     private void startCaptureImage() {
+        //it is solve this problem : exposed beyond app through ClipData.Item.getUri
         StrictMode.VmPolicy.Builder builder = new StrictMode.VmPolicy.Builder();
         StrictMode.setVmPolicy(builder.build());
-        Intent i = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
+        //i cope it from stackoverflow and the link below
+        //https://stackoverflow.com/questions/48117511/exposed-beyond-app-through-clipdata-item-geturi?answertab=votes#tab-top
+        Intent intent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
         File out = getExternalFilesDir(Environment.DIRECTORY_PICTURES);
         out = new File(out, "IMAGE_"+new Date()+".jpg");
         // I save image url to use the same url to delete the old one and save the image with text
         image_url=out.getAbsolutePath();
-        i.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(out));
-        startActivityForResult(i,TAKE_PICTURE_REQUEST);
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(out));
+        startActivityForResult(intent,TAKE_PICTURE_REQUEST);
     }
 
     @Override
@@ -244,42 +224,12 @@ public class AddPictureActivity extends AppCompatActivity {
             paintText.setShadowLayer(10f, 10f, 10f, Color.BLACK);
             Rect textRect = new Rect();
             paintText.getTextBounds(captionString, 0, captionString.length(), textRect);
-            canvas.drawText(captionString, 400, 900, paintText);
-            binding.addImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            binding.addImage.setImageBitmap(newBitmap);
-            binding.sharePicture.setVisibility(View.VISIBLE);
-            dialog.dismiss();
+            canvas.drawText(captionString, 300, 900, paintText);
+
         } catch (FileNotFoundException e) {
-            dialog.dismiss();
             e.printStackTrace();
         }
         return newBitmap;
-    }
-
-    private void storeImage(Bitmap mBitmap, String path) {
-        OutputStream fOut = null;
-        File file = new File(path);
-        try {
-            fOut = new FileOutputStream(file);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-        mBitmap.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
-        try {
-            fOut.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            fOut.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        try {
-            MediaStore.Images.Media.insertImage(getContentResolver(),file.getAbsolutePath(),file.getName(),file.getName());
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
     }
 
     public void getWeather(Double lat, Double lan){
@@ -291,14 +241,61 @@ public class AddPictureActivity extends AppCompatActivity {
                 if (weatherResponse==null){
                     dialog.dismiss();
                 }else {
-                    String text = weatherResponse.getName()+"\n"
-                            + weatherResponse.getWeather().get(0).getDescription()+"\n"
+                    String text = weatherResponse.getName()+" : "
+                            + weatherResponse.getWeather().get(0).getDescription()+" : "
                             +weatherResponse.getMain().getTemp();
-                    Bitmap bm = ProcessingBitmap(text);
-                    storeImage(bm, image_url);
+                    writeWeatherOnPicture(text);
                 }
             }
         });
+    }
+
+    private void writeWeatherOnPicture(String text) {
+
+        Bitmap bitmap = ProcessingBitmap(text);
+        ImageData dat=new ImageData(image_url,bitmap);
+        new SavePicture().execute(dat);
+
+    }
+
+    private class SavePicture extends AsyncTask<ImageData, Void, String> {
+
+        @Override
+        protected String doInBackground(ImageData... imageData) {
+
+            OutputStream fOut = null;
+            File file = new File(imageData[0].url);
+            try {
+                fOut = new FileOutputStream(file);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            imageData[0].bitmap.compress(Bitmap.CompressFormat.JPEG, 100, fOut);
+            try {
+                fOut.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                fOut.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            try {
+                MediaStore.Images.Media.insertImage(getContentResolver(),file.getAbsolutePath(),file.getName(),file.getName());
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+            return file.getAbsolutePath();
+        }
+
+        @Override
+        protected void onPostExecute(String url) {
+            binding.addImage.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            binding.addImage.setImageURI(Uri.parse(url));
+            binding.sharePicture.setVisibility(View.VISIBLE);
+            dialog.dismiss();
+        }
     }
 
     public void share(){
@@ -309,6 +306,3 @@ public class AddPictureActivity extends AppCompatActivity {
         startActivity(Intent.createChooser(shareIntent, "Share image using"));
     }
 }
-//89e349cd087e5484c90cc9e79d240c17
-//30.603223,30.8503672
-//2019-01-24 02:16:04.915 15598-15598/com.smile.mohamed.photoweathertask E/file: /storage/emulated/0/Android/getWeather/com.smile.mohamed.photoweathertask/files/Pictures/1548288964905_weatherphoto.jpg

@@ -1,4 +1,5 @@
 package com.smile.mohamed.photoweathertask.view.dialog;
+import android.databinding.DataBindingUtil;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -10,10 +11,12 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.smile.mohamed.photoweathertask.R;
+import com.smile.mohamed.photoweathertask.databinding.FullPictureDialogBinding;
 
 public class FullScreenPictureDialog extends DialogFragment {
 
 
+    private FullPictureDialogBinding binding;
     private String imageUrl;
     public static FullScreenPictureDialog newInstance(String url) {
         FullScreenPictureDialog frag = new FullScreenPictureDialog();
@@ -22,7 +25,6 @@ public class FullScreenPictureDialog extends DialogFragment {
         frag.setArguments(args);
         return frag;
     }
-
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -33,13 +35,11 @@ public class FullScreenPictureDialog extends DialogFragment {
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.full_picture_dialog, container, false);
+        binding = DataBindingUtil.inflate(inflater, R.layout.full_picture_dialog, container, false);
+        binding.fullPicture.setImageURI(Uri.parse(imageUrl));
 
-        ImageView imageView=view.findViewById(R.id.full_picture);
-        imageView.setImageURI(Uri.parse(imageUrl));
-        // Do all the stuff to initialize your custom view
-
-        return view;    }
+        return binding.getRoot();
+    }
 
 
 }
