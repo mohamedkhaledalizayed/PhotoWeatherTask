@@ -16,7 +16,7 @@
         android:supportsRtl="true"
         android:name=".app.WeatherApp"
         android:theme="@style/AppTheme">
-        <activity android:name=".view.SplashScreenActivity"
+        <activity android:name=".view.activity.SplashScreenActivity"
             android:theme="@style/AppTheme.FullScreen"
             >
             <intent-filter>
@@ -25,8 +25,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".view.AddPictureActivity" />
-        <activity android:name=".view.HistoryActivity"></activity>
+        <activity android:name=".view.activity.AddPictureActivity" />
+        <activity android:name=".view.activity.HistoryActivity"></activity>
     </application>
 
 </manifest>

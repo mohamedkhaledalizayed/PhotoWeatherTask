@@ -1,4 +1,4 @@
-package com.smile.mohamed.photoweathertask.view;
+package com.smile.mohamed.photoweathertask.view.adapter;
 
 import android.content.Context;
 import android.databinding.DataBindingUtil;

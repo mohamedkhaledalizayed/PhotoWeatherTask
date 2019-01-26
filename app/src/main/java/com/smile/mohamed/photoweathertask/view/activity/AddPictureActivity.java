@@ -1,4 +1,4 @@
-package com.smile.mohamed.photoweathertask.view;
+package com.smile.mohamed.photoweathertask.view.activity;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
